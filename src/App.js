@@ -10,28 +10,47 @@ function App() {
 
     const data = [
         {buildings: "ECSS - Engineering And Computer Science South", floorRoom: "2.311", available: true},
-        {buildings: "ECSW - Engineering And Computer Science West", floorRoom: "1.130", available: false},
-        {buildings: "ECSW - Engineering And Computer Science West", floorRoom: "1.375", available: false},
+        {buildings: "ECSW - Engineering And Computer Science West", floorRoom: "1.130", available: true},
+        {buildings: "ECSW - Engineering And Computer Science West", floorRoom: "1.375", available: true},
         {buildings: "GR - Cecil H. Green Hall", floorRoom: "3.810", available: true}
     ]
 
     let newData = []
-    
-    for(let i=0; i < data.length; i++) {
-        let curBuilding = data[i].buildings;
 
-        if (!newData.some(e => e.buildings == curBuilding))
-            newData.push({buildings: curBuilding, available: 1});
-        else {
-            for (let j=0; j<newData.length; j++) {
-                let pog = newData[j];
+    for (let i = 0; i < data.length; i++) {
+        let curRoom = data[i];
 
-                if (pog.buildings == curBuilding)
-                    newData[j].available = newData[j].available + 1;
+        if (newData.some(e => e.buildings == curRoom.buildings)) {
+            for (let j = 0; j < newData.length; j++) {
+                let curNewRoom = newData[j];
+                if (curNewRoom.buildings == curRoom.buildings) {
+                    let newArray = curNewRoom.rooms
+                    newArray.push({floorRoom: curRoom.floorRoom, available: curRoom.available});
+                    curNewRoom.rooms = newArray
+                    break;
+                }
             }
+        } else {
+            newData.push({buildings: curRoom.buildings, available: 0, rooms: [{floorRoom: curRoom.floorRoom, available: curRoom.available}]})
         }
     }
+
+    for (let i = 0; i < newData.length; i++) {
+        let curBuilding = newData[i];
+        let count = 0;
+        let rooms = curBuilding.rooms;
+
+        for (let j = 0; j < curBuilding.rooms.length; j++) {
+            let curRoom = rooms[j];
+            if (curRoom.available)
+                count += 1
+        }
+        newData[i].available = count
+    }
     console.log(newData)
+        
+    
+ //   {buildings: "name", count: 1, rooms: [{floorRoom: "3.810", available: true}]}
 
     const [rowData] = useState(newData);
 
@@ -58,30 +77,19 @@ function App() {
     }, [])
 
     const [isOpen, setIsOpen] = useState(false);
-    const togglePopup = useCallback((event) => {
+    const [selectedRow, setSelectedRow] = useState([{available: 0, buildings: "", rooms: [{floorRoom: "", available: false}]}]);
+
+    const togglePopup = () => {
         setIsOpen(!isOpen);
-        var buildingName = event.node.data.buildings;
-        var roomNames = event.node.data.floorRoom;
-        {isOpen && <Popup
-            content={<>
-        <b>{buildingName} Building Availability</b>
-        <br />
-        {roomNames} <a>
+    }
 
-        event.node.setSelected(false);
+    const onSelectionChanged = useCallback(() => {
+        const selectedRow = gridRef.current.api.getSelectedRows();
+        setSelectedRow(selectedRow)
+        togglePopup();
+    }, [])
 
-        {event.node.data.available == 0 && (
-        <p>No rooms available from this building.</p>
-
-        )}
-
-        </a>
-        
-
-        </>}
-        handleClose={togglePopup}
-        />}
-      }, []);
+    console.log(selectedRow[0].rooms[0].available);
 
     return (
         <div>
@@ -103,7 +111,7 @@ function App() {
                         <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
                         </div>
                         <input
-                        id="search"
+                        // id="search"
                         name="search"
                         className="block w-full rounded-md border border-gray-300 bg-white py-2 pl-[45px] pr-3 leading-5 placeholder-gray-500 focus:border-indigo-500 focus:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm"
                         placeholder="Search by: Building Name, Keyword, Etc"
@@ -129,8 +137,16 @@ function App() {
                             onFirstDataRendered={autoSizeAll}
                             cacheQuickFilter={true}
                             rowSelection={'single'}
-                            onRowSelected={togglePopup}>
+                            onSelectionChanged={onSelectionChanged}>
                         </AgGridReact>
+
+                        {isOpen && <Popup 
+                        content={<>
+                            <h1>{selectedRow[0].rooms[0].floorRoom}</h1>
+                            <h1>{selectedRow[0].rooms[0].available}</h1>
+                        </>}
+                        handleClose={togglePopup}
+                        />}
                 </div>
                 
                     <img src='https://i.postimg.cc/mD6dkG8h/placeholder-image.jpg' border='0' 
