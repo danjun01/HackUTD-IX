@@ -1,13 +1,13 @@
 import { MagnifyingGlassIcon } from "@heroicons/react/20/solid";
 import React, { useState, useRef, useCallback } from "react";
 import { AgGridReact } from "ag-grid-react";
-import Popup from "./Popup";
+import { useInterval } from "./util";
 
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-alpine.css";
 
 function App() {
-    const data = [
+    let data = [
         {
             buildings: "ECSS - Engineering And Computer Science South",
             floorRoom: "2.311",
@@ -30,54 +30,65 @@ function App() {
         },
     ];
 
-    let newData = [];
-
-    for (let i = 0; i < data.length; i++) {
-        let curRoom = data[i];
-
-        if (newData.some((e) => e.buildings == curRoom.buildings)) {
-            for (let j = 0; j < newData.length; j++) {
-                let curNewRoom = newData[j];
-                if (curNewRoom.buildings == curRoom.buildings) {
-                    let newArray = curNewRoom.rooms;
-                    newArray.push({
-                        floorRoom: curRoom.floorRoom,
-                        available: curRoom.available,
-                    });
-                    curNewRoom.rooms = newArray;
-                    break;
-                }
-            }
-        } else {
-            newData.push({
-                buildings: curRoom.buildings,
-                available: 0,
-                rooms: [
-                    {
-                        floorRoom: curRoom.floorRoom,
-                        available: curRoom.available,
-                    },
-                ],
-            });
-        }
-    }
-
-    for (let i = 0; i < newData.length; i++) {
-        let curBuilding = newData[i];
-        let count = 0;
-        let rooms = curBuilding.rooms;
-
-        for (let j = 0; j < curBuilding.rooms.length; j++) {
-            let curRoom = rooms[j];
-            if (curRoom.available == "true") count += 1;
-        }
-        newData[i].available = count;
-    }
-    console.log(newData);
-
     //   {buildings: "name", count: 1, rooms: [{floorRoom: "3.810", available: true}]}
 
-    const [rowData] = useState(newData);
+    function processData(resData) {
+        data = data.concat(resData);
+        let newData = [];
+
+        for (let i = 0; i < data.length; i++) {
+            let curRoom = data[i];
+
+            if (newData.some((e) => e.buildings == curRoom.buildings)) {
+                for (let j = 0; j < newData.length; j++) {
+                    let curNewRoom = newData[j];
+                    if (curNewRoom.buildings == curRoom.buildings) {
+                        let newArray = curNewRoom.rooms;
+                        newArray.push({
+                            floorRoom: curRoom.floorRoom,
+                            available: curRoom.available,
+                        });
+                        curNewRoom.rooms = newArray;
+                        break;
+                    }
+                }
+            } else {
+                newData.push({
+                    buildings: curRoom.buildings,
+                    available: 0,
+                    rooms: [
+                        {
+                            floorRoom: curRoom.floorRoom,
+                            available: curRoom.available,
+                        },
+                    ],
+                });
+            }
+        }
+
+        for (let i = 0; i < newData.length; i++) {
+            let curBuilding = newData[i];
+            let count = 0;
+            let rooms = curBuilding.rooms;
+
+            for (let j = 0; j < curBuilding.rooms.length; j++) {
+                let curRoom = rooms[j];
+                if (curRoom.available == "true") count += 1;
+            }
+            newData[i].available = count;
+        }
+        console.log(newData);
+
+        setRowData(newData);
+    }
+
+    useInterval(() => {
+        fetch("https://study-buddy-backend.vercel.app/room_status")
+            .then((res) => res.json())
+            .then((res) => processData(res));
+    }, 1000);
+
+    const [rowData, setRowData] = useState();
     const [roomRowData, setRoomRowData] = useState();
 
     const [query, setQuery] = useState("");
